@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -12,12 +13,18 @@ import (
 	taskusecase "example.com/taskservice/internal/usecase/task"
 )
 
-type TaskHandler struct {
-	usecase taskusecase.Usecase
+// RecurrenceGetter fetches recurrence settings for a task.
+type RecurrenceGetter interface {
+	GetRecurrence(ctx context.Context, taskID int64) (*taskdomain.Recurrence, error)
 }
 
-func NewTaskHandler(usecase taskusecase.Usecase) *TaskHandler {
-	return &TaskHandler{usecase: usecase}
+type TaskHandler struct {
+	usecase taskusecase.Usecase
+	recRepo RecurrenceGetter
+}
+
+func NewTaskHandler(usecase taskusecase.Usecase, recGetter RecurrenceGetter) *TaskHandler {
+	return &TaskHandler{usecase: usecase, recRepo: recGetter}
 }
 
 func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -27,17 +34,29 @@ func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	recInput, err := toRecurrenceInput(req.Recurrence)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+
 	created, err := h.usecase.Create(r.Context(), taskusecase.CreateInput{
 		Title:       req.Title,
 		Description: req.Description,
 		Status:      req.Status,
+		Recurrence:  recInput,
 	})
 	if err != nil {
 		writeUsecaseError(w, err)
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, newTaskDTO(created))
+	var rec *taskdomain.Recurrence
+	if created.IsTemplate {
+		rec, _ = h.recRepo.GetRecurrence(r.Context(), created.ID)
+	}
+
+	writeJSON(w, http.StatusCreated, newTaskDTO(created, rec))
 }
 
 func (h *TaskHandler) GetByID(w http.ResponseWriter, r *http.Request) {
@@ -53,7 +72,12 @@ func (h *TaskHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, newTaskDTO(task))
+	var rec *taskdomain.Recurrence
+	if task.IsTemplate {
+		rec, _ = h.recRepo.GetRecurrence(r.Context(), task.ID)
+	}
+
+	writeJSON(w, http.StatusOK, newTaskDTO(task, rec))
 }
 
 func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
@@ -69,17 +93,29 @@ func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	recInput, err := toRecurrenceInput(req.Recurrence)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err)
+		return
+	}
+
 	updated, err := h.usecase.Update(r.Context(), id, taskusecase.UpdateInput{
 		Title:       req.Title,
 		Description: req.Description,
 		Status:      req.Status,
+		Recurrence:  recInput,
 	})
 	if err != nil {
 		writeUsecaseError(w, err)
 		return
 	}
 
-	writeJSON(w, http.StatusOK, newTaskDTO(updated))
+	var rec *taskdomain.Recurrence
+	if updated.IsTemplate {
+		rec, _ = h.recRepo.GetRecurrence(r.Context(), updated.ID)
+	}
+
+	writeJSON(w, http.StatusOK, newTaskDTO(updated, rec))
 }
 
 func (h *TaskHandler) Delete(w http.ResponseWriter, r *http.Request) {
@@ -106,7 +142,27 @@ func (h *TaskHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	response := make([]taskDTO, 0, len(tasks))
 	for i := range tasks {
-		response = append(response, newTaskDTO(&tasks[i]))
+		var rec *taskdomain.Recurrence
+		if tasks[i].IsTemplate {
+			rec, _ = h.recRepo.GetRecurrence(r.Context(), tasks[i].ID)
+		}
+		response = append(response, newTaskDTO(&tasks[i], rec))
+	}
+
+	writeJSON(w, http.StatusOK, response)
+}
+
+func (h *TaskHandler) ListTemplates(w http.ResponseWriter, r *http.Request) {
+	templates, err := h.usecase.ListTemplates(r.Context())
+	if err != nil {
+		writeUsecaseError(w, err)
+		return
+	}
+
+	response := make([]taskDTO, 0, len(templates))
+	for i := range templates {
+		rec, _ := h.recRepo.GetRecurrence(r.Context(), templates[i].ID)
+		response = append(response, newTaskDTO(&templates[i], rec))
 	}
 
 	writeJSON(w, http.StatusOK, response)

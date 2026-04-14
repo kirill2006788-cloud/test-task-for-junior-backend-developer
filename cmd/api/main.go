@@ -37,9 +37,14 @@ func main() {
 
 	taskRepo := postgresrepo.New(pool)
 	taskUsecase := task.NewService(taskRepo)
-	taskHandler := httphandlers.NewTaskHandler(taskUsecase)
+	taskHandler := httphandlers.NewTaskHandler(taskUsecase, taskRepo)
 	docsHandler := swaggerdocs.NewHandler()
 	router := transporthttp.NewRouter(taskHandler, docsHandler)
+
+	// Start scheduler for generating recurring task instances
+	schedulerCtx, schedulerCancel := context.WithCancel(context.Background())
+	defer schedulerCancel()
+	go runScheduler(schedulerCtx, taskUsecase, logger, cfg.SchedulerInterval)
 
 	server := &http.Server{
 		Addr:              cfg.HTTPAddr,
@@ -66,15 +71,45 @@ func main() {
 	}
 }
 
+func runScheduler(ctx context.Context, uc task.Usecase, logger *slog.Logger, interval time.Duration) {
+	if interval <= 0 {
+		interval = 1 * time.Hour
+	}
+
+	logger.Info("scheduler started", "interval", interval)
+
+	// Run once immediately on startup
+	if err := uc.GenerateInstances(ctx, 30); err != nil {
+		logger.Error("scheduler initial run", "error", err)
+	}
+
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			logger.Info("scheduler stopped")
+			return
+		case <-ticker.C:
+			if err := uc.GenerateInstances(ctx, 30); err != nil {
+				logger.Error("scheduler tick", "error", err)
+			}
+		}
+	}
+}
+
 type config struct {
-	HTTPAddr    string
-	DatabaseDSN string
+	HTTPAddr          string
+	DatabaseDSN       string
+	SchedulerInterval time.Duration
 }
 
 func loadConfig() config {
 	cfg := config{
-		HTTPAddr:    envOrDefault("HTTP_ADDR", ":8080"),
-		DatabaseDSN: envOrDefault("DATABASE_DSN", "postgres://postgres:postgres@localhost:5432/taskservice?sslmode=disable"),
+		HTTPAddr:          envOrDefault("HTTP_ADDR", ":8080"),
+		DatabaseDSN:       envOrDefault("DATABASE_DSN", "postgres://postgres:postgres@localhost:5432/taskservice?sslmode=disable"),
+		SchedulerInterval: parseDurationOrDefault("SCHEDULER_INTERVAL", "1h"),
 	}
 
 	if cfg.DatabaseDSN == "" {
@@ -82,6 +117,20 @@ func loadConfig() config {
 	}
 
 	return cfg
+}
+
+func parseDurationOrDefault(key, fallback string) time.Duration {
+	val := fallback
+	if v := os.Getenv(key); v != "" {
+		val = v
+	}
+
+	d, err := time.ParseDuration(val)
+	if err != nil {
+		return 1 * time.Hour
+	}
+
+	return d
 }
 
 func envOrDefault(key, fallback string) string {
