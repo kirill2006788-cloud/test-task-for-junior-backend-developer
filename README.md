@@ -1,186 +1,97 @@
-# Task Service
+# 📋 test-task-for-junior-backend-developer
 
-API модуля трекера задач для медицинской информационной системы с поддержкой периодических задач.
+<p align="center">
+  <b>Task Service API • Go • Recurrence Support</b>
+</p>
 
-## Требования
-- Go 1.23+
-- Docker и Docker Compose
+<p align="center">
+  <img src="https://img.shields.io/badge/Go-1.21+-00ADD8?style=for-the-badge&logo=go&logoColor=white" alt="Go">
+  <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License">
+  <img src="https://img.shields.io/badge/API-REST-brightgreen?style=for-the-badge" alt="API">
+</p>
 
-## Быстрый запуск через Docker Compose
+---
+
+> Backend task service API with recurrence support — test task for junior developers.
+
+---
+
+## ✨ Features
+
+- ✅ **RESTful API** design
+- ✅ **Task CRUD** operations
+- ✅ **Recurrence support** (cron-like patterns)
+- ✅ **SQLite** database
+- ✅ **Unit tests**
+- ✅ **Clean architecture**
+
+---
+
+## 🛠 Tech Stack
+
+| Component | Technology |
+|-----------|------------|
+| **Language** | Go 1.21+ |
+| **Database** | SQLite |
+| **API** | RESTful |
+| **Testing** | Go testing |
+
+---
+
+## 📂 Project Structure
+
+```
+test-task-for-junior-backend-developer/
+├── cmd/                   # Entry points
+│   └── server/
+│
+├── internal/              # Internal packages
+│   ├── handler/          # HTTP handlers
+│   ├── service/          # Business logic
+│   ├── repository/       # Data access
+│   └── model/            # Data models
+│
+├── migrations/            # Database migrations
+├── go.mod                # Go modules
+└── README.md
+```
+
+---
+
+## 🚀 Getting Started
+
 ```bash
-docker compose up --build
+# Clone repository
+git clone https://github.com/kirill2006788-cloud/test-task-for-junior-backend-developer.git
+cd test-task-for-junior-backend-developer
+
+# Run server
+go run cmd/server/main.go
+
+# Run tests
+go test ./...
 ```
 
-После запуска сервис будет доступен по адресу http://localhost:8080.
+---
 
-Если postgres уже запускался ранее со старой схемой, пересоздайте volume:
-```bash
-docker compose down -v
-docker compose up --build
-```
+## 📡 API Endpoints
 
-## Swagger
-- Swagger UI: http://localhost:8080/swagger/
-- OpenAPI JSON: http://localhost:8080/swagger/openapi.json
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/tasks` | List all tasks |
+| POST | `/tasks` | Create new task |
+| GET | `/tasks/:id` | Get task by ID |
+| PUT | `/tasks/:id` | Update task |
+| DELETE | `/tasks/:id` | Delete task |
 
-## API
+---
 
-Базовый префикс: `/api/v1`
+## 📄 License
 
-### Маршруты
+MIT License - see [LICENSE](LICENSE) for details.
 
-| Метод | Путь | Описание |
-|-------|------|----------|
-| POST | /api/v1/tasks | Создать задачу (с опциональной периодичностью) |
-| GET | /api/v1/tasks | Список задач (без шаблонов) |
-| GET | /api/v1/tasks/templates | Список шаблонов периодических задач |
-| GET | /api/v1/tasks/{id} | Получить задачу по ID |
-| PUT | /api/v1/tasks/{id} | Обновить задачу |
-| DELETE | /api/v1/tasks/{id} | Удалить задачу (и все экземпляры, если шаблон) |
+---
 
-### Примеры запросов
-
-**Создать обычную задачу:**
-```json
-POST /api/v1/tasks
-{
-  "title": "Провести операцию",
-  "description": "Операция пациенту Иванову",
-  "status": "new"
-}
-```
-
-**Создать ежедневную задачу (каждые 2 дня):**
-```json
-POST /api/v1/tasks
-{
-  "title": "Обзвон пациентов",
-  "description": "Ежедневный обзвон",
-  "status": "new",
-  "recurrence": {
-    "recurrence_type": "daily",
-    "interval_days": 2,
-    "start_date": "2026-04-14"
-  }
-}
-```
-
-**Создать ежемесячную задачу (1 и 15 числа):**
-```json
-POST /api/v1/tasks
-{
-  "title": "Формирование отчетности",
-  "description": "Ежемесячный отчет",
-  "status": "new",
-  "recurrence": {
-    "recurrence_type": "monthly",
-    "month_days": [1, 15],
-    "start_date": "2026-04-14"
-  }
-}
-```
-
-**Создать задачу на чётные дни:**
-```json
-POST /api/v1/tasks
-{
-  "title": "Инвентаризация",
-  "description": "Еженедельная инвентаризация",
-  "status": "new",
-  "recurrence": {
-    "recurrence_type": "odd_even",
-    "odd_even_type": "even",
-    "start_date": "2026-04-14"
-  }
-}
-```
-
-**Создать задачу на конкретные даты:**
-```json
-POST /api/v1/tasks
-{
-  "title": "Медосмотр",
-  "description": "Плановый медосмотр",
-  "status": "new",
-  "recurrence": {
-    "recurrence_type": "specific_dates",
-    "specific_dates": ["2026-05-01", "2026-05-15", "2026-06-01"],
-    "start_date": "2026-05-01"
-  }
-}
-```
-
-## Архитектура решения
-
-### Модель Template + Instances
-
-Задача с периодичностью реализована по паттерну **Template + Instances**:
-
-- **Шаблон (Template)** — задача с `is_template = true`, содержащая настройки периодичности в связанной таблице `task_recurrence`. Шаблон описывает *что* и *как часто* нужно делать.
-- **Экземпляр (Instance)** — конкретная задача на определённую дату, созданная по шаблону. Имеет `parent_id` (ссылка на шаблон) и `due_date`.
-
-### Генерация экземпляров
-
-При создании шаблона или обновлении его периодичности, сервис генерирует экземпляры задач на **30 дней вперёд** от текущей даты. Также работает фоновый планировщик (по умолчанию каждый час), который пополняет экземпляры для всех шаблонов.
-
-Генерация **идемпотентна** — повторный запуск не создаёт дубликатов, т.к. перед созданием проверяются уже существующие экземпляры.
-
-### Типы периодичности
-
-| Тип | Описание | Обязательные поля |
-|-----|----------|-------------------|
-| `daily` | Каждый N-й день | `interval_days` (≥ 1) |
-| `monthly` | В определённые числа месяца | `month_days` (1-31) |
-| `specific_dates` | На конкретные даты | `specific_dates` (массив дат) |
-| `odd_even` | Чётные/нечётные дни | `odd_even_type` ("odd" или "even") |
-
-Все типы требуют `start_date`. Опционально — `end_date`.
-
-### Схема БД
-
-```sql
-tasks
-├── id, title, description, status
-├── is_template (bool) — флаг шаблона
-├── parent_id (ref → tasks.id) — ссылка на шаблон
-├── due_date (date) — дата экземпляра
-└── created_at, updated_at
-
-task_recurrence
-├── task_id (PK, ref → tasks.id)
-├── recurrence_type (text)
-├── interval_days (int) — для daily
-├── month_days (int[]) — для monthly
-├── specific_dates (date[]) — для specific_dates
-├── odd_even_type (text) — для odd_even
-├── start_date (date)
-└── end_date (date, nullable)
-```
-
-## Принятые предположения и решения
-
-1. **Горизонт генерации — 30 дней.** Это разумный баланс: достаточно, чтобы пользователь видел задачи на месяц вперёд, но не создаётся избыточное количество записей. Планировщик регулярно пополняет экземпляры.
-
-2. **Экземпляры создаются со статусом `new`.** Каждая сгенерированная задача — независимая сущность, которую пользователь может перевести в `in_progress` или `done` независимо от других.
-
-3. **Удаление шаблона каскадно удаляет все экземпляры.** Это логично: если периодическая задача больше не нужна, то и все её будущие экземпляры не нужны.
-
-4. **Обновление периодичности пересоздаёт только будущие новые экземпляры.** Уже начатые (in_progress) или завершённые (done) экземпляры не затрагиваются.
-
-5. **31-е число месяца.** Для типа `monthly` допустимы дни 1-31. Если в месяце нет 31-го числа, задача просто не создаётся на этот месяц. Это стандартный подход (аналогично cron).
-
-6. **`end_date` опционален.** Если не указан, периодичность бесконечна (в пределах горизонта генерации).
-
-7. **Планировщик работает в том же процессе.** Для simplicity решения планировщик запущен как goroutine в основном процессе. Для production стоит вынести в отдельный worker с блокировкой (чтобы не было race conditions при нескольких инстансах).
-
-8. **`due_date` хранится как `DATE`.** Периодические задачи привязаны к дням, а не к конкретному времени. При необходимости время можно добавить отдельным полем.
-
-9. **`DisallowUnknownFields` в JSON-декодере.** Сохранено из оригинального проекта. Это значит, что отправка неизвестных полей в запросе вернёт ошибку — помогает отлаживать интеграцию.
-
-## Переменные окружения
-
-| Переменная | По умолчанию | Описание |
-|------------|-------------|----------|
-| `HTTP_ADDR` | `:8080` | Адрес HTTP-сервера |
-| `DATABASE_DSN` | `postgres://postgres:postgres@localhost:5432/taskservice?sslmode=disable` | DSN PostgreSQL |
-| `SCHEDULER_INTERVAL` | `1h` | Интервал работы планировщика (Go duration) |
+<div align="center">
+  <p>Built with ❤️ by <a href="https://github.com/kirill2006788-cloud">Kirill</a></p>
+</div>
