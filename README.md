@@ -14,79 +14,96 @@
 
 > Backend task service API with recurrence support — test task for junior developers.
 
+> **Public portfolio version:** architecture + API design + engineering approach.
+
 ---
 
-## ✨ Features
+## ✨ What This Project Demonstrates
 
-- ✅ **RESTful API** design
-- ✅ **Task CRUD** operations
-- ✅ **Recurrence support** (cron-like patterns)
-- ✅ **SQLite** database
-- ✅ **Unit tests**
-- ✅ **Clean architecture**
+- 🏗️ **RESTful API** design principles
+- 📝 **Task CRUD** operations
+- 🔄 **Recurrence support** (cron-like patterns)
+- 🗄️ **SQLite** database design
+- 🧪 **Unit testing** approach
+- 📐 **Clean architecture** patterns
 
 ---
 
 ## 🛠 Tech Stack
+
 
 | Component | Technology |
 |-----------|------------|
 | **Language** | Go 1.21+ |
 | **Database** | SQLite |
 | **API** | RESTful |
-| **Testing** | Go testing |
+| **Architecture** | Clean Architecture |
 
 ---
 
-## 📂 Project Structure
+## 🏗 Architecture
+
 
 ```
-test-task-for-junior-backend-developer/
-├── cmd/                   # Entry points
-│   └── server/
-│
-├── internal/              # Internal packages
-│   ├── handler/          # HTTP handlers
-│   ├── service/          # Business logic
-│   ├── repository/       # Data access
+Task Service API/
+├── cmd/server/           # Entry point
+├── internal/
+│   ├── handler/          # HTTP handlers (REST endpoints)
+│   ├── service/          # Business logic layer
+│   ├── repository/       # Data access layer
 │   └── model/            # Data models
-│
-├── migrations/            # Database migrations
-├── go.mod                # Go modules
-└── README.md
+├── migrations/           # DB migrations
+└── go.mod
 ```
 
 ---
 
-## 🚀 Getting Started
+## 🔑 Key Features
 
-```bash
-# Clone repository
-git clone https://github.com/kirill2006788-cloud/test-task-for-junior-backend-developer.git
-cd test-task-for-junior-backend-developer
+### API Design
+- RESTful endpoints with proper HTTP methods
+- Request/response validation
+- Error handling and status codes
 
-# Run server
-go run cmd/server/main.go
+### Recurrence System
+- Cron-like recurrence patterns
+- Recurring task scheduling
+- Date/time handling
 
-# Run tests
-go test ./...
-```
+### Database
+- SQLite for simplicity
+- Proper schema design
+- Migration system
 
 ---
 
-## 📡 API Endpoints
+## 📦 Public Repository Contents
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/tasks` | List all tasks |
-| POST | `/tasks` | Create new task |
-| GET | `/tasks/:id` | Get task by ID |
-| PUT | `/tasks/:id` | Update task |
-| DELETE | `/tasks/:id` | Delete task |
+
+This repo includes only:
+
+- ✅ API architecture overview
+- ✅ Project structure documentation
+- ✅ Tech stack information
+
+This repo does **not** include:
+- ❌ Full source code
+- ❌ Database files
+- ❌ Configuration
+
+---
+
+## 🤝 For Recruiters
+
+Available on request:
+- 📂 Full source code walkthrough
+- 📐 Database schema review
+- 🚀 Scaling considerations
 
 ---
 
 ## 📄 License
+
 
 MIT License - see [LICENSE](LICENSE) for details.
 
